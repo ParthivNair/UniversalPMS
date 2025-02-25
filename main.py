@@ -1,7 +1,9 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import json
 from fastapi.middleware.cors import CORSMiddleware
+from difflib import SequenceMatcher
+from typing import Optional
 
 app = FastAPI()
 
@@ -79,3 +81,33 @@ def get_dashboard(token: str = Depends(oauth2_scheme)):
     else:
         raise HTTPException(status_code=404, detail="User data not found")
 
+
+with open("one_piece_wiki_pages.json", "r") as file:
+    pages = json.load(file)
+
+
+def relevance_score(query: str, text: str) -> float:
+    return SequenceMatcher(None, query.lower(), text.lower()).ratio()
+
+
+@app.get("/search")
+def search_pages(
+        query: str = Query(..., description="Search keyword or phrase"),
+        tag: Optional[str] = Query(None, description="Optional tag to filter results")
+):
+    results = []
+    for page in pages:
+        if tag and tag.lower() not in [t.lower() for t in page["tags"]]:
+            continue
+
+        relevance = max(
+            relevance_score(query, page["headline"]),
+            relevance_score(query, page["description"])
+        )
+
+        if relevance > 0.2:
+            results.append({**page, "relevance": round(relevance, 2)})
+
+    results.sort(key=lambda x: x["relevance"], reverse=True)
+
+    return {"query": query, "results": results}
