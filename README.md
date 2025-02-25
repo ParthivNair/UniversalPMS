@@ -65,4 +65,8 @@ fetch('http://localhost:8000/search?query=Luffy')
 
 You must implement your own logic to handle requests and responses. Do not rely on any provided test programs or existing client code.
 
+## UML Sequence Diagram
+
+![Sequence diagram.png](Sequence%20diagram.png)
+
 
